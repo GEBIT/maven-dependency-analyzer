@@ -87,7 +87,7 @@ public class DefaultProjectDependencyAnalyzerTest
             System.out.println( "Local repository: " + localRepo );
         }
 
-        analyzer = (ProjectDependencyAnalyzer) lookup( ProjectDependencyAnalyzer.class.getName() );
+        analyzer = (ProjectDependencyAnalyzer) lookup( ProjectDependencyAnalyzer.ROLE );
     }
 
     @Test
