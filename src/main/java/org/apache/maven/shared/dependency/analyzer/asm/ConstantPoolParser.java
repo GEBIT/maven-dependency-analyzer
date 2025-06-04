@@ -27,8 +27,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.objectweb.asm.Type;
-
 /**
  * A small parser to read the constant pool directly, in case it contains references
  * ASM does not support.
@@ -116,7 +114,6 @@ public class ConstantPoolParser {
         buf.getChar();
         buf.getChar(); // minor + ver
         Set<Integer> classReferences = new HashSet<>();
-        Set<Integer> typeReferences = new HashSet<>();
         Map<Integer, String> stringConstants = new HashMap<>();
         for (int ix = 1, num = buf.getChar(); ix < num; ix++) {
             byte tag = buf.get();
@@ -133,11 +130,8 @@ public class ConstantPoolParser {
                 case CONSTANT_FIELDREF:
                 case CONSTANT_METHODREF:
                 case CONSTANT_INTERFACEMETHODREF:
-                    consumeReference(buf);
-                    break;
                 case CONSTANT_NAME_AND_TYPE:
-                    buf.getChar();
-                    typeReferences.add((int) buf.getChar());
+                    consumeReference(buf);
                     break;
                 case CONSTANT_INTEGER:
                     consumeInt(buf);
@@ -180,18 +174,6 @@ public class ConstantPoolParser {
 
         for (Integer classRef : classReferences) {
             addClassToResult(result, stringConstants.get(classRef));
-        }
-
-        for (Integer typeRef : typeReferences) {
-            String typeName = stringConstants.get(typeRef);
-
-            if (Type.getType(typeName).getSort() == Type.METHOD) {
-                addClassToResult(result, Type.getReturnType(typeName).getInternalName());
-                Type[] argumentTypes = Type.getArgumentTypes(typeName);
-                for (Type argumentType : argumentTypes) {
-                    addClassToResult(result, argumentType.getInternalName());
-                }
-            }
         }
 
         return result;
