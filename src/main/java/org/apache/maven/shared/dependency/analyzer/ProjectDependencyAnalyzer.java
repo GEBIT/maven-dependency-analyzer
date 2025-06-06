@@ -21,6 +21,7 @@ package org.apache.maven.shared.dependency.analyzer;
 import java.util.Collection;
 
 import org.apache.maven.project.MavenProject;
+import org.apache.maven.project.ProjectBuildingRequest;
 
 /**
  * Analyze a project's declared dependencies and effective classes used to find which artifacts are:
@@ -54,6 +55,22 @@ public interface ProjectDependencyAnalyzer {
      * @return a {@link org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis} object
      * @throws org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalyzerException if any
      */
-    ProjectDependencyAnalysis analyze(MavenProject project, Collection<String> excludedClasses)
+    default ProjectDependencyAnalysis analyze(MavenProject project, Collection<String> excludedClasses)
+            throws ProjectDependencyAnalyzerException {
+        return analyze(project, null, excludedClasses);
+    }
+    ;
+
+    /**
+     * <p>analyze.</p>
+     *
+     * @param project a {@link org.apache.maven.project.MavenProject} object
+     * @param request a {@link org.apache.maven.project.ProjectBuildingRequest} object
+     * @param excludedClasses collection of regular expression of classes name to exclude
+     * @return a {@link org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis} object
+     * @throws org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalyzerException if any
+     */
+    ProjectDependencyAnalysis analyze(
+            MavenProject project, ProjectBuildingRequest request, Collection<String> excludedClasses)
             throws ProjectDependencyAnalyzerException;
 }
