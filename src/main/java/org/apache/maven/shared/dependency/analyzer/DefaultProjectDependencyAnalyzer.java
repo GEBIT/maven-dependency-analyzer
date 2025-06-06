@@ -39,7 +39,13 @@ import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 
 import org.apache.maven.artifact.Artifact;
+import org.apache.maven.project.DefaultProjectBuildingRequest;
 import org.apache.maven.project.MavenProject;
+import org.apache.maven.project.ProjectBuildingRequest;
+import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilder;
+import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilderException;
+import org.apache.maven.shared.dependency.graph.DependencyNode;
+import org.apache.maven.shared.dependency.graph.traversal.DependencyNodeVisitor;
 
 /**
  * <p>DefaultProjectDependencyAnalyzer class.</p>
@@ -61,9 +67,16 @@ public class DefaultProjectDependencyAnalyzer implements ProjectDependencyAnalyz
     @Inject
     private DependencyAnalyzer dependencyAnalyzer;
 
+    /**
+     * DependencyCollectorBuilder
+     */
+    @Inject
+    private DependencyCollectorBuilder dependencyCollectorBuilder;
+
     /** {@inheritDoc} */
     @Override
-    public ProjectDependencyAnalysis analyze(MavenProject project, Collection<String> excludedClasses)
+    public ProjectDependencyAnalysis analyze(
+            MavenProject project, ProjectBuildingRequest request, Collection<String> excludedClasses)
             throws ProjectDependencyAnalyzerException {
         try {
             ClassesPatterns excludedClassesPatterns = new ClassesPatterns(excludedClasses);
@@ -87,7 +100,24 @@ public class DefaultProjectDependencyAnalyzer implements ProjectDependencyAnalyz
                     .keySet();
             Set<Artifact> testOnlyArtifacts = removeAll(testArtifacts, mainUsedArtifacts);
 
+            // transitive non-test scoped artifacts (can't be declared with test scope)
+            Set<Artifact> testOnlyMainArtifacts;
+            Set<Artifact> testOnlyTestArtifacts;
+            if (request != null) {
+                Set<Artifact> transitivedMainArtifacts =
+                        buildTransitiveMainArtifacts(project, request, dependencyCollectorBuilder);
+                testOnlyMainArtifacts = retainAll(testOnlyArtifacts, transitivedMainArtifacts);
+                testOnlyTestArtifacts = removeAll(testOnlyArtifacts, testOnlyMainArtifacts);
+            } else {
+                testOnlyMainArtifacts = new LinkedHashSet<>();
+                testOnlyTestArtifacts = new LinkedHashSet<>(testOnlyArtifacts);
+            }
+
             Set<Artifact> declaredArtifacts = buildDeclaredArtifacts(project);
+            Set<Artifact> declaredTestArtifacts = filterTestArtifacts(declaredArtifacts);
+            Set<Artifact> declaredMainArtifacts = removeAll(declaredArtifacts, declaredTestArtifacts);
+
+            // used-declared: (declared & used)
             Set<Artifact> usedDeclaredArtifacts = new LinkedHashSet<>(declaredArtifacts);
             usedDeclaredArtifacts.retainAll(usedArtifacts.keySet());
 
@@ -96,16 +126,21 @@ public class DefaultProjectDependencyAnalyzer implements ProjectDependencyAnalyz
                 usedDeclaredArtifactsWithClasses.put(a, usedArtifacts.get(a));
             }
 
+            // used-undeclared: (used - declared - used-test-only-main)
             Map<Artifact, Set<DependencyUsage>> usedUndeclaredArtifactsWithClasses = new LinkedHashMap<>(usedArtifacts);
             Set<Artifact> usedUndeclaredArtifacts =
                     removeAll(usedUndeclaredArtifactsWithClasses.keySet(), declaredArtifacts);
+            usedUndeclaredArtifacts = removeAll(usedUndeclaredArtifacts, testOnlyMainArtifacts);
 
             usedUndeclaredArtifactsWithClasses.keySet().retainAll(usedUndeclaredArtifacts);
 
+            // unused-declared: (declared - used)
             Set<Artifact> unusedDeclaredArtifacts = new LinkedHashSet<>(declaredArtifacts);
             unusedDeclaredArtifacts = removeAll(unusedDeclaredArtifacts, usedArtifacts.keySet());
 
-            Set<Artifact> testArtifactsWithNonTestScope = getTestArtifactsWithNonTestScope(testOnlyArtifacts);
+            // test-with-non-test-scope: (declared-main & (used-test-only-test)
+            Set<Artifact> testArtifactsWithNonTestScope =
+                    retainAll(compileOnly(declaredMainArtifacts), testOnlyTestArtifacts);
 
             return new ProjectDependencyAnalysis(
                     usedDeclaredArtifactsWithClasses, usedUndeclaredArtifactsWithClasses,
@@ -113,6 +148,33 @@ public class DefaultProjectDependencyAnalyzer implements ProjectDependencyAnalyz
         } catch (IOException exception) {
             throw new ProjectDependencyAnalyzerException("Cannot analyze dependencies", exception);
         }
+    }
+
+    /**
+     * Returns a set of artifacts with non-runtime scope.
+     *
+     * @param artifacts artifacts to be filtered
+     * @return set of artifacts with non-runtime scope
+     */
+    private static Set<Artifact> compileOnly(Set<Artifact> artifacts) {
+        return artifacts.stream()
+                .filter(a -> Artifact.SCOPE_COMPILE.equalsIgnoreCase(a.getScope()))
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Returns an intersection of passed sets of artifacts.
+     *
+     * @param artifacts1 first set of artifacts
+     * @param artifacts2 second set of artifacts
+     * @return intersection of passed sets of artifacts
+     */
+    private static Set<Artifact> retainAll(Set<Artifact> artifacts1, Set<Artifact> artifacts2) {
+        return artifacts1.stream()
+                .filter(artifact1 -> artifacts2.stream()
+                        .anyMatch(artifact2 ->
+                                artifact1.getDependencyConflictId().equals(artifact2.getDependencyConflictId())))
+                .collect(Collectors.toSet());
     }
 
     /**
@@ -142,18 +204,6 @@ public class DefaultProjectDependencyAnalyzer implements ProjectDependencyAnalyz
         }
 
         return results;
-    }
-
-    private static Set<Artifact> getTestArtifactsWithNonTestScope(Set<Artifact> testOnlyArtifacts) {
-        Set<Artifact> nonTestScopeArtifacts = new LinkedHashSet<>();
-
-        for (Artifact artifact : testOnlyArtifacts) {
-            if (artifact.getScope().equals("compile")) {
-                nonTestScopeArtifacts.add(artifact);
-            }
-        }
-
-        return nonTestScopeArtifacts;
     }
 
     protected Map<Artifact, Set<String>> buildArtifactClassMap(MavenProject project, ClassesPatterns excludedClasses)
@@ -234,6 +284,71 @@ public class DefaultProjectDependencyAnalyzer implements ProjectDependencyAnalyz
         }
 
         return declaredArtifacts;
+    }
+
+    /**
+     * Returns a set of transitive artifacts with non-test scope.
+     * The set contains a transitive artfact even if it's additionally declared as direct artifact with another scope.
+     *
+     * @param project current Maven project
+     * @param request project build request to be used by collecting dependency graph
+     * @param dependencyCollectorBuilder dependency collector builder
+     * @return transitive artifacts with non-test scope
+     */
+    private static Set<Artifact> buildTransitiveMainArtifacts(
+            MavenProject project,
+            ProjectBuildingRequest request,
+            DependencyCollectorBuilder dependencyCollectorBuilder) {
+        Set<Artifact> transitiveMainArtifacts = new LinkedHashSet<>();
+        try {
+            ProjectBuildingRequest buildingRequest = new DefaultProjectBuildingRequest(request);
+            buildingRequest.setProject(project);
+            DependencyNode rootNode = dependencyCollectorBuilder.collectDependencyGraph(buildingRequest, null);
+            Set<Artifact> visited = new LinkedHashSet<>();
+            rootNode.accept(new DependencyNodeVisitor() {
+                @Override
+                public boolean visit(DependencyNode node) {
+                    if (node.getParent() == null) {
+                        return true; // skip root (project itself)
+                    }
+                    Artifact artifact = node.getArtifact();
+                    if (Artifact.SCOPE_TEST.equals(artifact.getScope())) {
+                        return false; // skip whole test scoped sub-tree
+                    }
+                    if (node.getParent().getParent() == null) {
+                        return true; // skip root's direct child (declared dependency)
+                    }
+                    if (!visited.contains(artifact)) {
+                        visited.add(artifact);
+                    } else {
+                        return false; // skip already visited sub-tree
+                    }
+                    transitiveMainArtifacts.add(artifact);
+                    return true;
+                }
+
+                @Override
+                public boolean endVisit(DependencyNode node) {
+                    return true;
+                }
+            });
+        } catch (DependencyCollectorBuilderException exc) {
+            // TODO: handle exception if some of dependencies couldn't be collected
+            exc.printStackTrace();
+        }
+        return transitiveMainArtifacts;
+    }
+
+    /**
+     * Returns only artifacts with test scope.
+     *
+     * @param artifacts artifacts to be filtered
+     * @return artifacts with test scope
+     */
+    private static Set<Artifact> filterTestArtifacts(Set<Artifact> artifacts) {
+        return artifacts.stream()
+                .filter(artifact -> Artifact.SCOPE_TEST.equals(artifact.getScope()))
+                .collect(Collectors.toSet());
     }
 
     private static Map<Artifact, Set<DependencyUsage>> buildUsedArtifacts(

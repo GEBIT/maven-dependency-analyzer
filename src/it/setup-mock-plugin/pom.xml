@@ -54,6 +54,11 @@
     </dependency>
     <dependency>
       <groupId>org.apache.maven.shared</groupId>
+      <artifactId>maven-dependency-tree</artifactId>
+      <version>@mavenDependendcyTreeVersion@</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven.shared</groupId>
       <artifactId>maven-dependency-analyzer</artifactId>
       <version>@project.version@</version>
     </dependency>

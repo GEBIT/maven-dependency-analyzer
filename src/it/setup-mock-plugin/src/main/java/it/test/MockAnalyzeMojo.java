@@ -26,6 +26,7 @@ import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.util.Set;
 
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -61,6 +62,9 @@ public class MockAnalyzeMojo extends AbstractMojo
     @Inject
     private MavenProject project;
 
+    @Inject
+    private MavenSession session;
+
     @Parameter( defaultValue = "${project.build.directory}/analysis.txt", readonly = true )
     private File output;
 
@@ -72,7 +76,8 @@ public class MockAnalyzeMojo extends AbstractMojo
     {
         try
         {
-            ProjectDependencyAnalysis analysis = analyzer.analyze( project, excludedClasses );
+			ProjectDependencyAnalysis analysis =
+					analyzer.analyze(project, session.getProjectBuildingRequest(), excludedClasses);
 
             Files.createDirectories( output.toPath().getParent() );
             try ( PrintWriter printWriter = new UnixPrintWiter( output ) )
