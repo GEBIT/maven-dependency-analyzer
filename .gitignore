@@ -1,3 +1,6 @@
+# GEBIT
+eclipse-target/
+
 target/
 .project
 .classpath

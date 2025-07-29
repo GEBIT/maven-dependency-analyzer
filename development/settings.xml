@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+
+	<mirrors>
+		<mirror>
+			<id>Nexus</id>
+			<name>Nexus Public Mirror</name>
+			<url>https://gebit-nexus.local.gebit.de/content/groups/public</url>
+			<mirrorOf>external:*</mirrorOf>
+		</mirror>
+	</mirrors>
+
+	<servers>
+		<!-- For your own project replace the server ID and environment variables, e.g. xyz-relases and NEXUS_XYZ_USERNAME) -->
+		<!-- see https://wiki.gebit.de/display/GBLD/Deployment+password+management for details -->
+		<server>
+			<id>gebit-releases</id>
+			<username>${env.NEXUS_GEBIT_BUILD_USERNAME}</username>
+			<password>${env.NEXUS_GEBIT_BUILD_PASSWORD}</password>
+		</server>
+		<server>
+			<id>gebit-snapshots</id>
+			<username>${env.NEXUS_GEBIT_BUILD_USERNAME}</username>
+			<password>${env.NEXUS_GEBIT_BUILD_PASSWORD}</password>
+		</server>
+		<server>
+			<id>gebit-integration</id>
+			<username>${env.NEXUS_GEBIT_BUILD_USERNAME}</username>
+			<password>${env.NEXUS_GEBIT_BUILD_PASSWORD}</password>
+		</server>
+	</servers>
+</settings>
