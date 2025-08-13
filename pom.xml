@@ -29,7 +29,7 @@
   </parent>
 
   <artifactId>maven-dependency-analyzer</artifactId>
-  <version>1.16.1-SNAPSHOT</version>
+  <version>1.16.1-gebit2</version>
   <packaging>jar</packaging>
 
   <name>Apache Maven Dependency Analyzer</name>
