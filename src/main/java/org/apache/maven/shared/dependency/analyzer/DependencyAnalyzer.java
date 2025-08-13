@@ -63,5 +63,20 @@ public interface DependencyAnalyzer {
      * classes declaring those references.
      * @throws IOException if an error occurs reading a JAR or .class file
      */
-    Set<DependencyUsage> analyzeUsages(URL url, ClassesPatterns excludeClasses) throws IOException;
+    default Set<DependencyUsage> analyzeUsages(URL url, ClassesPatterns excludeClasses) throws IOException {
+        return analyzeUsages(url, excludeClasses, false);
+    }
+
+    /**
+     * <p>analyzeUsages.</p>
+     *
+     * @param url the JAR file or directory to analyze
+     * @param excludeClasses a class list to exclude
+     * @param usedByTestClasses whether dependency used by test classes
+     * @return the set of class names referenced by the library, paired with the
+     * classes declaring those references.
+     * @throws IOException if an error occurs reading a JAR or .class file
+     */
+    Set<DependencyUsage> analyzeUsages(URL url, ClassesPatterns excludeClasses, boolean usedByTestClasses)
+            throws IOException;
 }

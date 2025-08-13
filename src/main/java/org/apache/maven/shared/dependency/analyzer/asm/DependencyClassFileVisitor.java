@@ -44,16 +44,23 @@ import org.objectweb.asm.signature.SignatureVisitor;
 public class DependencyClassFileVisitor implements ClassFileVisitor {
     private static final int BUF_SIZE = 8192;
 
-    private final ResultCollector resultCollector = new ResultCollector();
+    private final ResultCollector resultCollector;
 
     private final ClassesPatterns excludedClasses;
 
     /**
      * <p>Constructor for DependencyClassFileVisitor.</p>
      */
-    public DependencyClassFileVisitor(ClassesPatterns excludedClasses) {
-
+    public DependencyClassFileVisitor(ClassesPatterns excludedClasses, boolean usedByTestClasses) {
+        this.resultCollector = new ResultCollector(usedByTestClasses);
         this.excludedClasses = excludedClasses;
+    }
+
+    /**
+     * <p>Constructor for DependencyClassFileVisitor.</p>
+     */
+    public DependencyClassFileVisitor(ClassesPatterns excludedClasses) {
+        this(excludedClasses, false);
     }
 
     /**

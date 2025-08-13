@@ -37,7 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author <a href="mailto:markhobson@gmail.com">Mark Hobson</a>
  */
 class DependencyVisitorTest {
-    private final ResultCollector resultCollector = new ResultCollector();
+    private final ResultCollector resultCollector = new ResultCollector(false);
     private DefaultClassVisitor visitor;
     private MethodVisitor mv;
 

@@ -34,6 +34,15 @@ public class ResultCollector {
 
     private final Set<DependencyUsage> classUsages = new HashSet<>();
 
+    private final boolean usedByTestClasses;
+
+    /**
+     * @param usedByTestClasses whether dependenciey are used by test classes
+     */
+    public ResultCollector(boolean usedByTestClasses) {
+        this.usedByTestClasses = usedByTestClasses;
+    }
+
     /**
      * <p>getDependencies.</p>
      *
@@ -110,7 +119,7 @@ public class ResultCollector {
     public void add(final String usedByClass, final String name) {
         // inner classes have equivalent compilation requirement as container class
         if (name.indexOf('$') < 0) {
-            classUsages.add(new DependencyUsage(name, usedByClass));
+            classUsages.add(new DependencyUsage(name, usedByClass, usedByTestClasses));
         }
     }
 

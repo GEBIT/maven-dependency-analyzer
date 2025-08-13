@@ -182,6 +182,26 @@ public class ProjectDependencyAnalysis {
     }
 
     /**
+     * Filter artifacts used only in test classes from used undeclared.
+     *
+     * @return updated project dependency analysis
+     * @since 1.16.1
+     */
+    public ProjectDependencyAnalysis ignoreUsedUndeclaredTest() {
+        Map<Artifact, Set<DependencyUsage>> filteredUsedUndeclared = new LinkedHashMap<>();
+        for (Map.Entry<Artifact, Set<DependencyUsage>> e : usedUndeclaredArtifacts.entrySet()) {
+            Set<DependencyUsage> usages = new LinkedHashSet<>(e.getValue());
+            usages.removeIf(usage -> usage.isUsedByTestClass());
+            if (!usages.isEmpty()) {
+                filteredUsedUndeclared.put(e.getKey(), usages);
+            }
+        }
+
+        return new ProjectDependencyAnalysis(
+                usedDeclaredArtifacts, filteredUsedUndeclared, unusedDeclaredArtifacts, testArtifactsWithNonTestScope);
+    }
+
+    /**
      * Force use status of some declared dependencies, to manually fix consequences of bytecode-level analysis which
      * happens to not detect some effective use (constants, annotation with source-retention, javadoc).
      *

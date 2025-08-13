@@ -40,8 +40,9 @@ import org.apache.maven.shared.dependency.analyzer.DependencyUsage;
 public class ASMDependencyAnalyzer implements DependencyAnalyzer {
 
     @Override
-    public Set<DependencyUsage> analyzeUsages(URL url, ClassesPatterns excludeClasses) throws IOException {
-        DependencyClassFileVisitor visitor = new DependencyClassFileVisitor(excludeClasses);
+    public Set<DependencyUsage> analyzeUsages(URL url, ClassesPatterns excludeClasses, boolean usedByTestClasses)
+            throws IOException {
+        DependencyClassFileVisitor visitor = new DependencyClassFileVisitor(excludeClasses, usedByTestClasses);
 
         ClassFileVisitorUtils.accept(url, visitor);
 

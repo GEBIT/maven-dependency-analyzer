@@ -210,20 +210,20 @@ public class DefaultProjectDependencyAnalyzer implements ProjectDependencyAnalyz
     private Set<DependencyUsage> buildMainDependencyClasses(MavenProject project, ClassesPatterns excludedClasses)
             throws IOException {
         String outputDirectory = project.getBuild().getOutputDirectory();
-        return buildDependencyClasses(outputDirectory, excludedClasses);
+        return buildDependencyClasses(outputDirectory, excludedClasses, false);
     }
 
     private Set<DependencyUsage> buildTestDependencyClasses(MavenProject project, ClassesPatterns excludedClasses)
             throws IOException {
         String testOutputDirectory = project.getBuild().getTestOutputDirectory();
-        return buildDependencyClasses(testOutputDirectory, excludedClasses);
+        return buildDependencyClasses(testOutputDirectory, excludedClasses, true);
     }
 
-    private Set<DependencyUsage> buildDependencyClasses(String path, ClassesPatterns excludedClasses)
-            throws IOException {
+    private Set<DependencyUsage> buildDependencyClasses(
+            String path, ClassesPatterns excludedClasses, boolean usedByTestClasses) throws IOException {
         URL url = new File(path).toURI().toURL();
 
-        return dependencyAnalyzer.analyzeUsages(url, excludedClasses);
+        return dependencyAnalyzer.analyzeUsages(url, excludedClasses, usedByTestClasses);
     }
 
     private static Set<Artifact> buildDeclaredArtifacts(MavenProject project) {

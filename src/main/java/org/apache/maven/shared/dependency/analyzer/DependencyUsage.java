@@ -29,9 +29,12 @@ public class DependencyUsage {
 
     private final String usedBy;
 
-    public DependencyUsage(String dependencyClass, String usedBy) {
+    private final boolean usedByTestClass;
+
+    public DependencyUsage(String dependencyClass, String usedBy, boolean usedByTestClass) {
         this.dependencyClass = dependencyClass;
         this.usedBy = usedBy;
+        this.usedByTestClass = usedByTestClass;
     }
 
     /**
@@ -48,12 +51,20 @@ public class DependencyUsage {
         return usedBy;
     }
 
+    /**
+     * @return whether the project class is a test class
+     */
+    public boolean isUsedByTestClass() {
+        return usedByTestClass;
+    }
+
     /*
      * @see java.lang.Object#hashCode()
      */
     public int hashCode() {
         int hashCode = dependencyClass.hashCode();
         hashCode = (hashCode * 37) + usedBy.hashCode();
+        hashCode = (hashCode * 37) + Boolean.hashCode(usedByTestClass);
 
         return hashCode;
     }
@@ -66,7 +77,8 @@ public class DependencyUsage {
             DependencyUsage usage = (DependencyUsage) object;
 
             return getDependencyClass().equals(usage.getDependencyClass())
-                    && getUsedBy().equals(usage.getUsedBy());
+                    && getUsedBy().equals(usage.getUsedBy())
+                    && isUsedByTestClass() == usage.isUsedByTestClass();
         }
 
         return false;
@@ -81,6 +93,8 @@ public class DependencyUsage {
         buffer.append("dependencyClass=").append(getDependencyClass());
         buffer.append(",");
         buffer.append("usedBy=").append(getUsedBy());
+        buffer.append(",");
+        buffer.append("usedByTestClass=").append(isUsedByTestClass());
 
         buffer.insert(0, "[");
         buffer.insert(0, getClass().getName());
